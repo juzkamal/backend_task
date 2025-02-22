@@ -1,4 +1,5 @@
 const db = require("../config/db");
+const { link } = require("../server");
 
 async function findContactsByEmailOrPhone(email, phoneNumber) {
     const [contacts] = await db.query(
@@ -8,7 +9,7 @@ async function findContactsByEmailOrPhone(email, phoneNumber) {
     return contacts;
 }
 
-async function craeteContact(email, phoneNumber, linkedId, linkPrecedence) {
+async function createContact(email, phoneNumber, linkedId, linkPrecedence) {
     const [result] = await db.query(
         "INSERT INTO contacts (email, phoneNumber, linkedId, linkPrecedence, createdAt, updatedAt) VALUES (?, ?, ?, ?, NOW(), NOW())",
         [email, phoneNumber, linkedId, linkPrecedence]
@@ -30,9 +31,11 @@ async function updateContactToSecondary(contactId, primaryContactId) {
         [primaryContactId, contactId]
     );
 }
+
+
 module.exports = {
     findContactsByEmailOrPhone,
-    craeteContact,
+    createContact,
     findContactsByPrimary,
-    updateContactToSecondary
-};
+    updateContactToSecondary,
+}
