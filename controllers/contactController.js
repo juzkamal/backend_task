@@ -1,5 +1,6 @@
 const db = require("../config/db");
 
+// Fetches all contacts to display on the web page
 const getAllContacts = async (req, res) => {
   try {
     const [contacts] = await db.query("SELECT * FROM contacts");

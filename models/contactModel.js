@@ -1,5 +1,6 @@
 const db = require("../config/db");
 
+// Fetch contacts with contacts with given email and phone number
 async function findContactsByEmailOrPhone(email, phoneNumber) {
     const [contacts] = await db.query(
         "SELECT * FROM contacts WHERE (email = ? OR phoneNumber = ?) AND deletedAt IS NULL ORDER BY createdAt ASC",
@@ -8,6 +9,7 @@ async function findContactsByEmailOrPhone(email, phoneNumber) {
     return contacts;
 }
 
+// Creates and inserts a new instant into the database
 async function createContact(email, phoneNumber, linkedId, linkPrecedence) {
     const [result] = await db.query(
         "INSERT INTO contacts (email, phoneNumber, linkedId, linkPrecedence, createdAt, updatedAt) VALUES (?, ?, ?, ?, NOW(), NOW())",
@@ -24,17 +26,10 @@ async function findContactsByPrimary(primaryContactId) {
     return contacts;
 }
 
-async function updateContactToSecondary(contactId, primaryContactId) {
-    await db.query(
-        "UPDATE contacts SET linkPrecedence = 'secondary', linkedId = ?, updatedAt = NOW() WHERE id = ?",
-        [primaryContactId, contactId]
-    );
-}
 
 
 module.exports = {
     findContactsByEmailOrPhone,
     createContact,
     findContactsByPrimary,
-    updateContactToSecondary,
 }

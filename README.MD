@@ -5,7 +5,6 @@ This project implements a contact identification system using **Node.js**, **Exp
 ## Features
 - Identifies and links contacts based on email and phone number.
 - Ensures new entries are marked as secondary contacts when linked.
-- Implements recursive queries to determine the correct primary contact.
 - Includes an HTML frontend (`index.html`) for submitting contact data.
 
 ---
@@ -63,9 +62,9 @@ Ensure you have the following installed:
 ```json
 {
   "primaryContactId": 1,
-  "emails": ["user@example.com"],
+  "emails": ["user@example.com", "doc@example.com"],
   "phoneNumbers": ["9876543210"],
-  "secondaryContactIds": [2, 3]
+  "secondaryContactIds": [2]
 }
 ```
 
@@ -78,7 +77,7 @@ The project includes a simple `index.html` page for submitting form data.
 1. Open `index.html` in a browser.
 2. Enter an email and/or phone number.
 3. Click **Submit** to send a request to the API.
-4. The response will be displayed on the page.
+4. The response will be added into the database.
 
 ---
 

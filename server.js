@@ -14,6 +14,8 @@ app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, "public")));
 
 app.get("/check-db", checkConnection);
+
+// identify end-point
 app.post("/identify", identifyContact);
 app.get("/contacts", getAllContacts);
 
