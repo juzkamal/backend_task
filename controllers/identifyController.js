@@ -14,7 +14,7 @@ async function checkConnection(req, res) {
     
 }
 
-// function for identify endpoint
+// Function to insert or create data
 async function identifyContact(req, res) {
     try {
         const { email, phoneNumber } = req.body;
@@ -24,59 +24,66 @@ async function identifyContact(req, res) {
 
         let contacts = await contactModel.findContactsByEmailOrPhone(email, phoneNumber);
         
-        if (contacts.length > 0) {
-            // Find the first contact with these details (chronologically)
-            let firstContact = contacts[0];
+        // Find the oldest primary contact in the chain
+        let primaryContact = contacts.find((c) => c.linkPrecedence === "primary") || contacts[0];
+
+        if (primaryContact) {
             contacts.forEach((c) => {
-                if (c.createdAt < firstContact.createdAt) {
-                    firstContact = c;
+                if (c.linkPrecedence === "primary" && c.createdAt < primaryContact.createdAt) {
+                    primaryContact = c;
                 }
             });
 
-            // Create new secondary contact linked to the first contact
-            const newContactId = await contactModel.createContact(
-                email, 
-                phoneNumber, 
-                firstContact.id, 
-                "secondary"
-            );
+            let attempts = 0;
+            const MAX_ATTEMPTS = 100;  // Prevent infinite loops
+            
+            while (primaryContact.linkPrecedence !== "primary") {
+                if (attempts++ > MAX_ATTEMPTS) {
+                    throw new Error("Max attempts reached while finding primary contact - possible circular reference");
+                }
+                const [rows] = await db.query("SELECT * FROM contacts WHERE id = ?", [primaryContact.linkedId]);
+                if (!rows || rows.length === 0) {
+                    throw new Error(`No contact found with ID ${primaryContact.linkedId}`);
+                }
+                primaryContact = rows[0];
+                if (!primaryContact.linkedId && primaryContact.linkPrecedence !== "primary") {
+                    throw new Error(`Found secondary contact ${primaryContact.id} with no linkedId`);
+                }
+            }
 
-            // Fetch all contacts including the newly created one
-            contacts = await contactModel.findContactsByPrimary(firstContact.id);
+            // Check if the new email/phoneNumber is already associated
+            const isNewEmail = email && !contacts.some((c) => c.email === email);
+            const isNewPhone = phoneNumber && !contacts.some((c) => c.phoneNumber === phoneNumber);
 
-            const emails = [...new Set(contacts.map((c) => c.email).filter(Boolean))];
-            const phoneNumbers = [...new Set(contacts.map((c) => c.phoneNumber).filter(Boolean))];
-            const secondaryContactIds = contacts
-                .filter((c) => c.linkPrecedence === "secondary")
-                .map((c) => c.id);
-
-            return res.status(200).json({
-                primaryContactId: firstContact.id,
-                emails,
-                phoneNumbers,
-                secondaryContactIds,
-            });
+            if (isNewEmail || isNewPhone) {
+                await contactModel.createContact(email, phoneNumber, primaryContact.id, "secondary");
+            }
         } else {
-            // Create new primary contact if no existing contacts found
-            const newContactId = await contactModel.createContact(
-                email, 
-                phoneNumber, 
-                null, 
-                "primary"
-            );
-
-            return res.status(200).json({
-                primaryContactId: newContactId,
-                emails: email ? [email] : [],
-                phoneNumbers: phoneNumber ? [phoneNumber] : [],
-                secondaryContactIds: [],
-            });
+            // Create new primary contact
+            primaryContact = {
+                id: await contactModel.createContact(email, phoneNumber, null, "primary"),
+                email,
+                phoneNumber,
+            };
         }
+
+        // Fetch all contacts linked to the primary contact
+        contacts = await contactModel.findContactsByPrimary(primaryContact.id);
+
+        const emails = [...new Set(contacts.map((c) => c.email).filter(Boolean))];
+        const phoneNumbers = [...new Set(contacts.map((c) => c.phoneNumber).filter(Boolean))];
+        const secondaryContactIds = contacts.filter((c) => c.linkPrecedence === "secondary").map((c) => c.id);
+
+        return res.status(200).json({
+            primaryContactId: primaryContact.id,
+            emails,
+            phoneNumbers,
+            secondaryContactIds,
+        });
     } catch (error) {
         console.error("Error:", error);
         return res.status(500).json({ error: "Something went wrong" });
     }
 }
-
 
 module.exports = {checkConnection, identifyContact};
