@@ -1,9 +1,8 @@
 const db = require("../config/db");
-const { link } = require("../server");
 
 async function findContactsByEmailOrPhone(email, phoneNumber) {
     const [contacts] = await db.query(
-        "SELECT * FROM contacts WHERE (email = ? OR phoneNumber = ?) AND deletedAt IS NULL",
+        "SELECT * FROM contacts WHERE (email = ? OR phoneNumber = ?) AND deletedAt IS NULL ORDER BY createdAt ASC",
         [email, phoneNumber]
     );
     return contacts;
