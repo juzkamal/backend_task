@@ -8,23 +8,76 @@
 </head>
 <body>
     <div class="container">
-        <h2>Identify Contact</h2>
-        <form id="identifyForm">
-            <label>Email:</label>
-            <input type="email" id="email" placeholder="Enter email">
-            
-            <label>Phone Number:</label>
-            <input type="text" id="phoneNumber" placeholder="Enter phone number">
-            
-            <button type="submit">Submit</button>
-        </form>
-
-        <h3>Response:</h3>
-        <pre id="response"></pre>
-
-        <a href="contacts.html">View All Contacts</a>
+        <div class="form-container">
+            <h2>Identify Contact</h2>
+            <form id="identifyForm">
+                <input type="email" id="email" placeholder="Enter email">
+                <input type="text" id="phoneNumber" placeholder="Enter phone number">
+                <button type="submit">Submit</button>
+            </form>
+        </div>
+        
+        <div class="table-container">
+            <h2>All Contacts</h2>
+            <div style="overflow-y: auto; max-height: 80vh;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Email</th>
+                            <th>Phone Number</th>
+                            <th>Linked ID</th>
+                            <th>Link Precedence</th>
+                        </tr>
+                    </thead>
+                    <tbody id="contactsTable"></tbody>
+                </table>
+            </div>
+        </div>
     </div>
 
-    <script src="script.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            fetchContacts();
+        });
+
+        document.getElementById("identifyForm").addEventListener("submit", function(event) {
+            event.preventDefault();
+            
+            const email = document.getElementById("email").value;
+            const phoneNumber = document.getElementById("phoneNumber").value;
+
+            fetch("/identify", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email, phoneNumber })
+            })
+            .then(response => response.json())
+            .then(data => {
+                window.location.reload(); 
+            })
+            .catch(error => console.error("Error submitting form:", error));
+        });
+
+        function fetchContacts() {
+            fetch("/contacts")
+                .then(response => response.json())
+                .then(data => {
+                    const tableBody = document.getElementById("contactsTable");
+                    tableBody.innerHTML = ""; 
+                    data.forEach(contact => {
+                        const row = `<tr>
+                            <td>${contact.id}</td>
+                            <td>${contact.email || "-"}</td>
+                            <td>${contact.phoneNumber || "-"}</td>
+                            <td>${contact.linkedId || "-"}</td>
+                            <td>${contact.linkPrecedence}</td>
+                        </tr>`;
+                        tableBody.innerHTML += row;
+                    });
+                })
+                .catch(error => console.error("Error fetching contacts:", error));
+        }
+    </script>
 </body>
 </html>
